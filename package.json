@@ -1,0 +1,27 @@
+{
+  "name": "oma-bundle",
+  "description": "Create bundle releases from source archives.",
+  "main": "index",
+  "version": "1.0.0",
+  "dependencies": {
+    "datauri": "0.7.1",
+    "image-size": "0.3.5",
+    "oma-constants": "^1.0.0",
+    "oma-util": "^1.0.0",
+    "uglify-js": "^2.4.24"
+  },
+  "keywords": [
+    "oma",
+    "open mainframe architecture",
+    "bundle"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-mainframe-architecture/oma-bundle.git"
+  },
+  "author": "open.mainframe@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/open-mainframe-architecture/oma-bundle/issues"
+  }
+}
