@@ -51,12 +51,12 @@ module.exports = function (archivePath, bundleDirectory) {
 };
 
 // open versioned archive at given path 
-var patternArchiveName = /^[A-Za-z]+(?:-[A-Za-z]+)+$/;
-var patternArchiveVersion = /^\d+\.\d+\.\d+$/;
 function openArchive(archivePath) {
   var archiveDirectory = path.dirname(archivePath);
   var archiveName = path.basename(archiveDirectory);
   var archiveVersion = path.basename(archivePath, '.zip');
+  var patternArchiveName = constants.archive.pattern.name;
+  var patternArchiveVersion = constants.archive.pattern.version;
   if (!archiveName.match(patternArchiveName) || !archiveVersion.match(patternArchiveVersion)) {
     throw new Error('Invalid archive: ' + archivePath);
   }
@@ -122,8 +122,8 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
     return findBestArchive(mainArchive.home, externalName, externalVersion)
       .then(function (externalArchive) {
         if (!externalArchive) {
-          var missingArchive = 'Missing archive ' + externalName + ' ' + externalVersion;
-          throw new Error('publish/' + bundleName + '.js: ' + missingArchive);
+          var missing = 'Missing archive ' + externalName + ' ' + externalVersion;
+          throw new Error(assetPath.bundleScriptsHome + bundleName + ': ' + missing);
         }
         archives[externalName] = externalArchive;
       })
@@ -139,7 +139,7 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
           if (includes.some(startsWith) && !excludes.some(startsWith)) {
             if (bundledModules[moduleName]) {
               var otherName = bundledModules[moduleName].archive.name;
-              throw new Error(moduleName + ' spans archives ' + otherName + ' and ' + archiveName);
+              throw new Error(moduleName + ' in archives ' + otherName + ' and ' + archiveName);
             }
             bundledModules[moduleName] = modules[moduleName];
           }
@@ -152,7 +152,7 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
 
 // open archive with highest version that satifies dependency on external archive
 function findBestArchive(homeDirectory, archiveName, archiveVersion) {
-  var archivePath = homeDirectory + '/' + archiveName + '/+([0-9]).+([0-9]).+([0-9]).zip';
+  var archivePath = homeDirectory + '/' + archiveName + '/' + constants.archive.version + '.zip';
   var versions = {};
   return util.mapFiles(archivePath, function (file, cb) {
     versions[path.basename(file.path, '.zip')] = file.path;
@@ -299,7 +299,7 @@ function publishModules(mainArchive, releaseHome, bundled) {
       var loaderSource = sources[0] + '.bundle(' + sources[1] + ');'
       var miniSource = uglify.minify(loaderSource, { fromString: true }).code;
       var moduleSpecs = evaluateModuleSpecs(sources[1]);
-      var metaSource = JSON.stringify(createBundleMeta(moduleSpecs), null, '\t');
+      var metaSource = JSON.stringify(createBundleMeta(moduleSpecs));
       var outputOptions = { defaultEncoding: 'utf8' };
       var loaderOutput = util.openWriteStream(loaderPath, outputOptions);
       var miniOutput = util.openWriteStream(miniPath, outputOptions);
@@ -468,8 +468,8 @@ function createBundleMeta(moduleSpecs) {
     var dependencies = moduleConfig.depends || [];
     // collect dependencies from class scripts
     for (var className in moduleSpec) {
-      if (className && moduleSpec[className].depends) {
-        moduleSpec[className].depends.forEach(function (dependencyName) {
+      if (className && Array.isArray(moduleSpec[className])) {
+        moduleSpec[className].forEach(function (dependencyName) {
           if (dependencies.indexOf(dependencyName) < 0) {
             dependencies.push(dependencyName);
           }
@@ -493,16 +493,11 @@ function createBundleMeta(moduleSpecs) {
 function evaluateModuleSpecs(source) {
   // install temporary string method
   String.prototype.subclass = function () {
-    var n = arguments.length - 1, clsSpec = { super: this, script: arguments[n] };
-    for (var i = 0; i < n; ++i) {
-      var argument = arguments[i];
-      if (Array.isArray(argument)) {
-        clsSpec.depends = argument;
-      } else if (typeof argument !== 'function') {
-        clsSpec.requires = argument;
+    for (var i = 0, n = arguments.length - 1; i < n; ++i) {
+      if (Array.isArray(arguments[i])) {
+        return arguments[i];
       }
     }
-    return clsSpec;
   };
   // evaluate module specifications
   var specs = Function('return ' + source)();
