@@ -18,9 +18,9 @@ var assetPath = {
   classHome: constants.module.classScripts.home + '/',
   configHome: constants.module.configScripts.home + '/',
   publicHome: constants.module.publicAssets.home + '/',
-  bundleLoader: constants.bundle.loader + '.js',
-  bundleMeta: constants.bundle.loader + '.json',
-  bundleMini: constants.bundle.loader + '.min.js'
+  bundleLoader: constants.bundle.file + '.js',
+  bundleMeta: constants.bundle.file + '.json',
+  bundleMini: constants.bundle.file + '.min.js'
 };
 
 function datafy(extension, buffer) {
@@ -52,9 +52,8 @@ module.exports = function (archivePath, bundleDirectory) {
 
 // open versioned archive at given path 
 function openArchive(archivePath) {
-  var archiveDirectory = path.dirname(archivePath);
-  var archiveName = path.basename(archiveDirectory);
-  var archiveVersion = path.basename(archivePath, '.zip');
+  var archiveVersion = path.basename(path.dirname(archivePath));
+  var archiveName = path.basename(path.dirname(path.dirname(archivePath)));
   var patternArchiveName = constants.archive.pattern.name;
   var patternArchiveVersion = constants.archive.pattern.version;
   if (!archiveName.match(patternArchiveName) || !archiveVersion.match(patternArchiveVersion)) {
@@ -62,7 +61,7 @@ function openArchive(archivePath) {
   }
   return util.unzip(archivePath)
     .then(function (archive) {
-      archive.home = path.dirname(archiveDirectory);
+      archive.path = archivePath;
       archive.name = archiveName;
       archive.version = archiveVersion;
       var modules = archive.modules = {};
@@ -119,7 +118,8 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
   // find and open external archives (in same directory as main archive)
   return Promise.all(Object.keys(externals).map(function (externalName) {
     var externalVersion = externals[externalName];
-    return findBestArchive(mainArchive.home, externalName, externalVersion)
+    var archiveHome = path.dirname(path.dirname(path.dirname(mainArchive.path)));
+    return findBestArchive(archiveHome, externalName, externalVersion)
       .then(function (externalArchive) {
         if (!externalArchive) {
           var missing = 'Missing archive ' + externalName + ' ' + externalVersion;
@@ -151,11 +151,12 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
 }
 
 // open archive with highest version that satifies dependency on external archive
-function findBestArchive(homeDirectory, archiveName, archiveVersion) {
-  var archivePath = homeDirectory + '/' + archiveName + '/' + constants.archive.version + '.zip';
+function findBestArchive(homeDir, archiveName, archiveVersion) {
+  var versionDir = constants.archive.version, archiveZip = constants.archive.file;
+  var archivePath = homeDir + '/' + archiveName + '/' + versionDir + '/' + archiveZip + '.zip';
   var versions = {};
   return util.mapFiles(archivePath, function (file, cb) {
-    versions[path.basename(file.path, '.zip')] = file.path;
+    versions[path.basename(path.dirname(file.path))] = file.path;
     cb(null);
   })
     .then(function () {
@@ -444,7 +445,7 @@ function generatePublicSpecs(generate, archive, assets) {
       generate('{bytes:', size, ',data64:\'', publicAsset.datafied, '\'}');
     } else if (publicAsset.imageHeight) {
       var height = publicAsset.imageHeight, width = publicAsset.imageWidth;
-      generate('{bytes:', size, ',height:', height, ',width:', width, '}');
+      generate('{bytes:', size, ',px:{height:', height, ',width:', width, '}}');
     } else {
       generate(size);
     }
