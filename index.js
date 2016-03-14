@@ -300,7 +300,7 @@ function publishModules(mainArchive, releaseHome, bundled) {
       var loaderSource = sources[0] + '.bundle(' + sources[1] + ');'
       var miniSource = uglify.minify(loaderSource, { fromString: true }).code;
       var moduleSpecs = evaluateModuleSpecs(sources[1]);
-      var metaSource = JSON.stringify(createBundleMeta(moduleSpecs));
+      var metaSource = JSON.stringify(createBundleMeta(moduleSpecs), null, '\t');
       var outputOptions = { defaultEncoding: 'utf8' };
       var loaderOutput = util.openWriteStream(loaderPath, outputOptions);
       var miniOutput = util.openWriteStream(miniPath, outputOptions);
@@ -360,14 +360,14 @@ function createBundleSpecs(mainArchive, bundleName, modules, release) {
 function generateBundleConfigs(generate, mainArchive, bundleName, release) {
   generate('function(bundle){',
     '"use strict";',
-    'bundle.releases={',
+    'bundle.modules={',
   // include configuration info about modules in this release
-    '\'', release.replace(/=/g, '\':\'').replace(/,/g, '\',\''), '\'',
+    '\'', release.replace(/=/g, '\':\'').replace(/,/g, '\',\'').replace(/\/[0-9.]+/g, ''), '\'',
     '};'
     );
   // include configuration info about source archives in this release
   var sourceVersions = computeSourceVersions(release);
-  generate('bundle.sources={');
+  generate('bundle.archives={');
   Object.keys(sourceVersions).sort().forEach(function (archiveName, i) {
     generate(i ? ',\'' : '\'', archiveName, '\':\'', sourceVersions[archiveName], '\'');
   });
@@ -442,10 +442,10 @@ function generatePublicSpecs(generate, archive, assets) {
     var publicAsset = assets[publicPath], size = publicAsset.uncompressedSize;
     generate(ix ? ',' : '', '\'', publicPath, '\':');
     if (publicAsset.datafied) {
-      generate('{bytes:', size, ',data64:\'', publicAsset.datafied, '\'}');
+      generate('{size:', size, ',data64:\'', publicAsset.datafied, '\'}');
     } else if (publicAsset.imageHeight) {
       var height = publicAsset.imageHeight, width = publicAsset.imageWidth;
-      generate('{bytes:', size, ',px:{height:', height, ',width:', width, '}}');
+      generate('{size:', size, ',pixel:{height:', height, ',width:', width, '}}');
     } else {
       generate(size);
     }
@@ -459,7 +459,8 @@ function generatePublicSpecs(generate, archive, assets) {
 // generate meta object that describes the modules in a bundle
 function createBundleMeta(moduleSpecs) {
   // extract release info from bundle config that maps bundled modules to archives
-  var moduleArchives = collectModuleConfig(moduleSpecs['']['']).releases;
+  var bundleConfig = collectModuleConfig(moduleSpecs['']['']);
+  var moduleArchives = bundleConfig.modules, archiveVersions = bundleConfig.archives;
   var sortedNames = Object.keys(moduleArchives).sort();
   var metaObject = {};
   // collect more meta info about modules
@@ -477,11 +478,11 @@ function createBundleMeta(moduleSpecs) {
         });
       }
     }
-    var archiveVersion = moduleArchives[moduleName].split('/');
+    var archiveName = moduleArchives[moduleName];
     var datatypes = moduleConfig.datatypes;
     metaObject[moduleName] = {
       description: moduleConfig.description || 'Undocumented',
-      archive: { name: archiveVersion[0], version: archiveVersion[1] },
+      archive: { name: archiveName, version: archiveVersions[archiveName] },
       depends: dependencies.length ? dependencies.sort() : undefined,
       index: sortedNames.indexOf(moduleName),
       optional: typeof moduleConfig.test === 'function' ? 'y' : undefined,
