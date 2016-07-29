@@ -24,10 +24,10 @@ const assetPath = {
 };
 
 const datafyLimit = constants.tool.datafy.limit, datafyExtensions = {}, graphicsExtensions = {};
-for (let extension of util.fileExtensions(constants.category, constants.tool.datafy.category)) {
+for (const extension of util.fileExtensions(constants.category, constants.tool.datafy.category)) {
   datafyExtensions[extension] = true;
 }
-for (let extension of util.fileExtensions(constants.category, 'gfx')) {
+for (const extension of util.fileExtensions(constants.category, 'gfx')) {
   graphicsExtensions[extension] = true;
 }
 
@@ -70,7 +70,7 @@ function openArchive(archivePath) {
       archive.version = archiveVersion;
       const modules = archive.modules = {};
       // collect assets of modules
-      for (let entry in archive.entries) {
+      for (const entry in archive.entries) {
         const moduleName = entry.substring(0, entry.indexOf('/'));
         if (moduleName.indexOf('.') > 0) {
           const archivedModule = modules[moduleName] || (modules[moduleName] = { assets: {} });
@@ -133,9 +133,9 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
     .then(function() {
       // collect bundled modules and report conflicts
       const includes = bundleConfig.includes || [''], excludes = bundleConfig.excludes || [];
-      for (let archiveName in archives) {
+      for (const archiveName in archives) {
         const modules = archives[archiveName].modules;
-        for (let moduleName in modules) {
+        for (const moduleName in modules) {
           const patternMatch = pattern => util.startsWith(moduleName, pattern);
           if (includes.some(patternMatch) && !excludes.some(patternMatch)) {
             if (bundledModules[moduleName]) {
@@ -322,7 +322,7 @@ function createBundleSpecs(mainArchive, bundleName, modules, release) {
     .then(() => {
       generate(']}');
       let chainedPromise = Promise.resolve();
-      for (let moduleName of Object.keys(modules).sort()) {
+      for (const moduleName of Object.keys(modules).sort()) {
         chainedPromise = chainedPromise
           .then(() => {
             generate(`,'${moduleName}':`)
@@ -382,7 +382,7 @@ function generateModuleSpec(generate, bundledModule) {
     .then(() => {
       let chainedPromise = Promise.resolve();
       const secondaryScripts = util.selectEntries(assets, assetPath.configHome);
-      for (let configName of Object.keys(secondaryScripts)) {
+      for (const configName of Object.keys(secondaryScripts)) {
         chainedPromise = chainedPromise
           .then(() => {
             generate(',');
@@ -401,7 +401,7 @@ function generateModuleSpec(generate, bundledModule) {
     .then(() => {
       generate(']');
       const classes = bundledModule.classes;
-      for (let className of Object.keys(classes).sort()) {
+      for (const className of Object.keys(classes).sort()) {
         generate(`,'`, className, `':`, classes[className]);
       }
       generate('}');
@@ -440,14 +440,15 @@ function createBundleMeta(moduleSpecs) {
   const sortedNames = Object.keys(moduleArchives).sort();
   const metaObject = {};
   // collect more meta info about modules
-  for (let moduleName in moduleArchives) {
+  for (const moduleName in moduleArchives) {
     const moduleSpec = moduleSpecs[moduleName];
     const moduleConfig = collectModuleConfig(moduleSpec['']);
     const dependencies = moduleConfig.depends || [];
+    const serviceProviders = moduleConfig.provides ? Object.keys(moduleConfig.provides) : [];
     // collect dependencies from class scripts
-    for (let className in moduleSpec) {
+    for (const className in moduleSpec) {
       if (className && Array.isArray(moduleSpec[className])) {
-        for (let dependencyName of moduleSpec[className]) {
+        for (const dependencyName of moduleSpec[className]) {
           if (dependencies.indexOf(dependencyName) < 0) {
             dependencies.push(dependencyName);
           }
@@ -459,6 +460,7 @@ function createBundleMeta(moduleSpecs) {
       description: moduleConfig.description || 'Undocumented',
       archive: { name: archiveName, version: archiveVersions[archiveName] },
       depends: dependencies.length ? dependencies.sort() : undefined,
+      provides: serviceProviders.length ? serviceProviders.sort() : undefined,
       ordinal: sortedNames.indexOf(moduleName),
       optional: typeof moduleConfig.test === 'function' ? 'y' : undefined,
       datatypes: util.hasEnumerables(datatypes) ? { _: flatTypespace(datatypes) } : undefined
@@ -486,7 +488,7 @@ function evaluateModuleSpecs(source) {
 // sequence of configure closures computes configuration
 function collectModuleConfig(configureClosures) {
   const config = {};
-  for (let closure of configureClosures) { 
+  for (const closure of configureClosures) {
     closure(config);
   }
   return config;
@@ -495,8 +497,8 @@ function collectModuleConfig(configureClosures) {
 // convert configured datatypes to flat typespace
 function flatTypespace(definitions) {
   const flat = {};
-  for (let name in definitions) {
-    let source = definitions[name];
+  for (const name in definitions) {
+    const source = definitions[name];
     flat[name] = typeof source === 'string' ? source : flatRecordType(source);
   }
   return flat;
@@ -507,7 +509,7 @@ function flatRecordType(fields) {
   const accu = [];
   if (fields.$macro) {
     accu.push('(');
-    fields.$macro.forEach((equation, i) => { accu.push(i ? ',' : '', equation)});
+    fields.$macro.forEach((equation, i) => { accu.push(i ? ',' : '', equation) });
     accu.push(')');
   }
   if (fields.$super) {
@@ -515,7 +517,7 @@ function flatRecordType(fields) {
   }
   accu.push('{');
   let comma = '';
-  for (let key in fields) {
+  for (const key in fields) {
     if (key.charAt(0) !== '$') {
       const source = fields[key];
       accu.push(comma, key, ':', typeof source === 'string' ? source : flatRecordType(source));
