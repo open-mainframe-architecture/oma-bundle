@@ -6,7 +6,7 @@ const path = require('path');
 
 const constants = require('oma-constants');
 const imageDimensions = require('image-size');
-const uglify = require('uglify-js');
+// const uglify = require('uglify-js');
 const util = require('oma-util');
 
 const Datauri = require('datauri');
@@ -20,7 +20,7 @@ const assetPath = {
   publicHome: `${constants.module.publicAssets.home}/`,
   bundleLoader: `${constants.bundle.file}.js`,
   bundleMeta: `${constants.bundle.file}.json`,
-  bundleMini: `${constants.bundle.file}.min.js`
+//  bundleMini: `${constants.bundle.file}.min.js`
 };
 
 const datafyLimit = constants.tool.datafy.limit, datafyExtensions = {}, graphicsExtensions = {};
@@ -136,7 +136,7 @@ function bundleModules(mainArchive, bundleName, bundleConfig) {
       for (const archiveName in archives) {
         const modules = archives[archiveName].modules;
         for (const moduleName in modules) {
-          const patternMatch = pattern => util.startsWith(moduleName, pattern);
+          const patternMatch = pattern => moduleName.startsWith(pattern);
           if (includes.some(patternMatch) && !excludes.some(patternMatch)) {
             if (bundledModules[moduleName]) {
               const otherName = bundledModules[moduleName].archive.name;
@@ -230,7 +230,7 @@ function processModule(releaseHome, bundledModule) {
   // minify JavaScript assets
   /*
   processAssets(publicAssets, publicPath => {
-    if (util.endsWith(publicPath, '.js') && !util.endsWith(publicPath, '.min.js')) {
+    if (publicPath.endsWith('.js') && !publicPath.endsWith('.min.js')) {
       const javaScriptAsset = publicAssets[publicPath];
       return util.unzipText(bundledModule.archive.file, javaScriptAsset)
         .then(scriptSource => {
@@ -276,7 +276,7 @@ function processModule(releaseHome, bundledModule) {
 function publishModules(mainArchive, releaseHome, bundled) {
   // directory 0 holds assets of anonymous module
   const loaderPath = `${releaseHome}/0/${assetPath.bundleLoader}`;
-  const miniPath = `${releaseHome}/0/${assetPath.bundleMini}`;
+  // const miniPath = `${releaseHome}/0/${assetPath.bundleMini}`;
   const metaPath = `${releaseHome}/0/${assetPath.bundleMeta}`;
   return Promise.all([
     createBundlePrologue(bundled.name, bundled.modules, bundled.config.boot),
@@ -354,7 +354,7 @@ function generateBundleConfigs(generate, mainArchive, bundleName, release) {
   generate('};');
   generate('bundle.publishes={');
   generate(`'`, assetPath.bundleLoader, `':-1,`);
-  generate(`'`, assetPath.bundleMini, `':-1,`);
+  // generate(`'`, assetPath.bundleMini, `':-1,`);
   generate(`'`, assetPath.bundleMeta, `':-1`);
   generate('};');
   generate('},');
