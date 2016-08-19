@@ -2,12 +2,12 @@
   "name": "oma-bundle",
   "description": "Create bundle releases from source archives.",
   "main": "index",
-  "version": "10.0.1",
+  "version": "10.0.2",
   "dependencies": {
     "datauri": "0.7.1",
     "image-size": "0.3.5",
     "oma-constants": "^10.0.1",
-    "oma-util": "^10.0.1"
+    "oma-util": "^10.0.2"
   },
   "keywords": [
     "oma",
